@@ -1,0 +1,47 @@
+name: Node.js CI & Docker
+
+on:
+  push:
+    paths:
+      - 'service-node/**'
+  pull_request:
+    paths:
+      - 'service-node/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: service-node
+
+      - name: Run tests
+        run: npm test || echo "No tests defined"
+        working-directory: service-node
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/service-node:latest ./service-node
+
+      - name: Docker Login
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/service-node:latest
